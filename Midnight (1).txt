@@ -1,0 +1,38 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local function getVehicle()
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+return humanoid.SeatPart.Parent
+end
+end
+
+local vehicle = getVehicle()
+if not vehicle or not vehicle.PrimaryPart then
+warn("1, help in discord")
+return
+end
+
+print("2")
+
+-- BodyVelocity erstellen
+local bv = Instance.new("BodyVelocity")
+bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+bv.Velocity = Vector3.new(0,0,0)
+bv.Parent = vehicle.PrimaryPart
+
+-- Automatische Geschwindigkeit
+RunService.Heartbeat:Connect(function(delta)
+local currentVel = vehicle.PrimaryPart.Velocity.Magnitude
+if currentVel < targetSpeed then
+-- Geschwindigkeit nur erhöhen, nicht sofort auf targetSpeed
+local direction = vehicle.PrimaryPart.CFrame.LookVector
+bv.Velocity = direction * math.min(currentVel + accel, targetSpeed)
+else
+-- Geschwindigkeit überschreiten, falls Limit erreicht
+bv.Velocity = vehicle.PrimaryPart.Velocity
+end
+end)
