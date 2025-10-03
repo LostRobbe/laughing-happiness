@@ -1,38 +1,61 @@
+-- Standardwerte setzen, falls noch nicht vorhanden
+getgenv().targetSpeed = getgenv().targetSpeed or 300
+getgenv().accel = getgenv().accel or 1
+
+-- Lade den eigentlichen Script (der im Hintergrund läuft)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LostRobbe/laughing-happiness/refs/heads/main/Midnight%20(1).txt"))()
+
+-- Services
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
 local function getVehicle()
-local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
-return humanoid.SeatPart.Parent
-end
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+    if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+        return humanoid.SeatPart.Parent
+    end
 end
 
 local vehicle = getVehicle()
-if not vehicle or not vehicle.PrimaryPart then
-warn("1, help in discord")
-return
-end
 
-print("2")
+-- Warten, falls noch kein Auto vorhanden
+while not vehicle or not vehicle.PrimaryPart do
+    task.wait(1)
+    vehicle = getVehicle()
+end
 
 -- BodyVelocity erstellen
 local bv = Instance.new("BodyVelocity")
-bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+bv.MaxForce = Vector3.new(0,0,0) -- inaktiv am Anfang
 bv.Velocity = Vector3.new(0,0,0)
 bv.Parent = vehicle.PrimaryPart
 
+-- Fahrzeug automatisch erkennen, falls du wechselst
+RunService.Heartbeat:Connect(function()
+    local v = getVehicle()
+    if v and v ~= vehicle then
+        vehicle = v
+        if vehicle.PrimaryPart then
+            bv.Parent = vehicle.PrimaryPart
+            bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+        end
+    end
+end)
+
 -- Automatische Geschwindigkeit
-RunService.Heartbeat:Connect(function(delta)
-local currentVel = vehicle.PrimaryPart.Velocity.Magnitude
-if currentVel < targetSpeed then
--- Geschwindigkeit nur erhöhen, nicht sofort auf targetSpeed
-local direction = vehicle.PrimaryPart.CFrame.LookVector
-bv.Velocity = direction * math.min(currentVel + accel, targetSpeed)
-else
--- Geschwindigkeit überschreiten, falls Limit erreicht
-bv.Velocity = vehicle.PrimaryPart.Velocity
-end
+RunService.Heartbeat:Connect(function()
+    if not vehicle or not vehicle.PrimaryPart then return end
+    local dir = vehicle.PrimaryPart.CFrame.LookVector
+    local curVel = vehicle.PrimaryPart.Velocity.Magnitude
+
+    local targetSpeed = getgenv().targetSpeed
+    local accel = getgenv().accel
+
+    if curVel < targetSpeed then
+        bv.Velocity = dir * math.min(curVel + accel, targetSpeed)
+    else
+        bv.Velocity = vehicle.PrimaryPart.Velocity
+    end
 end)
